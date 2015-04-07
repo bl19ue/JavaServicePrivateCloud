@@ -14,15 +14,17 @@ import java.util.*;
 @RestController
 public class VMController {
 	VMFunctions vmfunctions = new VMFunctions();
+	// get the list of templates
 	//view the VM, user passes the uuid
 	@RequestMapping(value="/vm/{uuid}", method=RequestMethod.GET)
     @ResponseBody
-    public String getVM(@PathVariable("uuid") int uuid){
+    public String getVM(@PathVariable("uuid") String uuid){
+		findVm(uuid);
     	return "You have got the VM " + uuid;
     }
 	
 	//start the vm, after the user gives the uuid
-	@RequestMapping(value="/vm/{uuid}", method=RequestMethod.GET)
+	@RequestMapping(value="/vm/{uuid}/start", method=RequestMethod.GET)
     @ResponseBody
     public String startVM(@PathVariable("id") String uuid) throws Exception{
 		boolean vm_status=vmfunctions.VMoperations(uuid, "poweron");
@@ -33,9 +35,9 @@ public class VMController {
     }
 	
 	//reboot the vm, after the user gives the uuid
-		@RequestMapping(value="/vm/{uuid}", method=RequestMethod.GET)
+		@RequestMapping(value="/vm/{uuid}/reboot", method=RequestMethod.GET)
 	    @ResponseBody
-	    public String reboottVM(@PathVariable("id") String uuid) throws Exception{
+	    public String rebootVM(@PathVariable("id") String uuid) throws Exception{
 			boolean vm_status=vmfunctions.VMoperations(uuid, "reboot");
 			if(vm_status==true)
 	    	return "You have started the VM " + uuid;
@@ -44,7 +46,7 @@ public class VMController {
 	    }
 		
 		//reset the vm, after the user gives the uuid
-		@RequestMapping(value="/vm/{uuid}", method=RequestMethod.GET)
+		@RequestMapping(value="/vm/{uuid}/reset", method=RequestMethod.GET)
 	    @ResponseBody
 	    public String resetVM(@PathVariable("id") String uuid) throws Exception{
 			boolean vm_status=vmfunctions.VMoperations(uuid, "reset");
@@ -75,12 +77,20 @@ public class VMController {
 			return "VM cannot be stopped " + uuid;
 			
     }
-	
+	 //create the Virtual machine and return the unique instance id
 	 @RequestMapping(value = "/vm/{template_id}",method = RequestMethod.POST)
 	  public String createVM(@RequestBody VM vm,@PathVariable("template_id") String template_id) throws Exception{
-		 vmfunctions.createVM(vm.getVmName(),template_id);
-        return "";
-
+		return vmfunctions.createVM(vm.getVmName(),template_id);
 	  }
+	 
+	 //get the Virtual machine status
+	 @RequestMapping(value="/vm/{uuid}/status",method=RequestMethod.GET)
+	 public String vmStatus(@PathVariable("uuid")String uuid) throws Exception{
+		 return vmfunctions.VMStatus(uuid);	 
+	 }
+	 
+	 public void findVm(String uuid){
+		 
+	 }
 
 }
