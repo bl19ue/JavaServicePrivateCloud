@@ -10,16 +10,20 @@ import com.vmware.vim25.*;
 import com.vmware.vim25.mo.*;
 
 public class VMFunctions {
-	
-	
+
 	public String createVM(String newVmname, String template_id) throws Exception {
-		ServiceInstance si = new ServiceInstance(new URL("https://130.65.132.101/sdk"), "administrator", "12!@qwQW",true);                    //create instance of ServiceInstance
+        //create instance of ServiceInstance
+		ServiceInstance si = new ServiceInstance(new URL("https://130.65.132.101/sdk"), "administrator", "12!@qwQW", true);
+		
+
 		Folder rootFolder = si.getRootFolder();
-	    VirtualMachine vm = (VirtualMachine) new InventoryNavigator(
-	        rootFolder).searchManagedEntity("VirtualMachine", newVmname);
+		
+	    VirtualMachine vm = (VirtualMachine) new InventoryNavigator(rootFolder).searchManagedEntity("VirtualMachine", newVmname);
 	    
-	    if(vm==null)                            //check whether there is vm or not
+	    //check whether there is vm or not
+	    if(vm==null)
 	    {
+
 	      System.out.println("No VM " + newVmname + " found");
 	      si.getServerConnection().logout();
 	      return "";
@@ -27,6 +31,7 @@ public class VMFunctions {
 	    
 	    /* if(vm.getConfig().template==true){                  //check if the vm is a template or not
 	    	System.out.println("yes Template found.");*/
+	  
 	    
 	    VirtualMachineCloneSpec cloneSpec = new VirtualMachineCloneSpec(); //create an instance of vm clone specifications
 	    cloneSpec.setLocation(new VirtualMachineRelocateSpec());   //set location ,power and template values
@@ -38,12 +43,15 @@ public class VMFunctions {
 	    System.out.println("Launching the VM creation task. " +	"Please wait ...");
 
 	    String status = task.waitForTask();   
-	    if(status==Task.SUCCESS)                //task status
+	    
+	    //task status
+	    if(status==Task.SUCCESS)                
 	    {
-	      System.out.println("VM got created successfully from template.");
+	    	System.out.println("VM got created successfully from template.");
 	    }
 	    else
 	    {
+
 	      System.out.println("Failure -: VM cannot be created");
 	      return "";
 	    }
@@ -54,6 +62,7 @@ public class VMFunctions {
 
 	}*/
 	//	return true;
+
 	}
 
 	public boolean startVM() {
@@ -65,20 +74,25 @@ public class VMFunctions {
 	public boolean VMoperations(String uuid, String op) throws Exception {
 
 		String vmname = "";
-		ServiceInstance si = new ServiceInstance(new URL(
-				"https://130.65.132.101/sdk"), "administrator", "12!@qwQW",
-				true);
+		ServiceInstance si = new ServiceInstance(new URL("https://130.65.132.101/sdk"), "administrator", "12!@qwQW", true);
 
 		Folder rootFolder = si.getRootFolder();
+		
 		System.out.println(rootFolder.getName()); // Datacenters
+		
 		ManagedEntity[] mes = rootFolder.getChildEntity();
 
 		for (int i = 0; i < mes.length; i++) {
+			
 			System.out.println(mes[i].getName()); // T01-DC
+			
 			if (mes[i] instanceof Datacenter) {
 				Datacenter dc = (Datacenter) mes[i];
+				
 				Folder vmFolder = dc.getVmFolder(); // vm folder
+				
 				System.out.println(vmFolder.getName()); // vm
+				
 				ManagedEntity vm_mainfolder = vmFolder.getChildEntity()[0]; // Discovered virtual machine
 																			
 				ManagedEntity[] vms = new InventoryNavigator(vm_mainfolder)
@@ -90,21 +104,23 @@ public class VMFunctions {
 						VirtualMachine vm = (VirtualMachine) vms[j];
 						String instanceUuid = vm.getConfig().instanceUuid;
 						System.out.println((vm.getName()) + "," + instanceUuid);
-						VirtualMachineSummary summary = (VirtualMachineSummary) (vm
-								.getSummary());
+						
+						VirtualMachineSummary summary = (VirtualMachineSummary) (vm.getSummary());
+						
 						System.out.println(summary.toString());
+						
 						VirtualMachineRuntimeInfo vmri = (VirtualMachineRuntimeInfo) vm
 								.getRuntime();
 						if (uuid.equals(instanceUuid)) {
 							if (vmri.getPowerState() == VirtualMachinePowerState.poweredOn
 									&& op.equals("poweroff")) {
 								Task task = vm.powerOffVM_Task();
-								task.waitForMe();
+								task.waitForTask();
 								System.out.println("vm:" + vm.getName()
 										+ " powered off.");
 							} else if ("poweron".equalsIgnoreCase(op)) {
 								Task task = vm.powerOnVM_Task(null);
-								if (task.waitForMe() == Task.SUCCESS) {
+								if (task.waitForTask() == Task.SUCCESS) {
 									System.out.println(vmname + " powered on");
 								}
 							} else if ("reboot".equalsIgnoreCase(op)) {
@@ -112,7 +128,7 @@ public class VMFunctions {
 								System.out.println(vmname+ " guest OS rebooted");
 							} else if ("reset".equalsIgnoreCase(op)) {
 								Task task = vm.resetVM_Task();
-								if (task.waitForMe() == Task.SUCCESS) {
+								if (task.waitForTask() == Task.SUCCESS) {
 									System.out.println(vmname + " reset");
 								}
 							} else if ("standby".equalsIgnoreCase(op)) {
@@ -121,18 +137,18 @@ public class VMFunctions {
 										.println(vmname + " guest OS stoodby");
 							} else if ("suspend".equalsIgnoreCase(op)) {
 								Task task = vm.suspendVM_Task();
-								if (task.waitForMe() == Task.SUCCESS) {
+								if (task.waitForTask() == Task.SUCCESS) {
 									System.out.println(vmname + " suspended");
 								}
 							} else if ("shutdown".equalsIgnoreCase(op)) {
 								Task task = vm.suspendVM_Task();
-								if (task.waitForMe() == Task.SUCCESS) {
+								if (task.waitForTask() == Task.SUCCESS) {
 									System.out.println(vmname + " suspended");
 								}
 							} else {
-								System.out
-										.println("Invalid operation. Exiting...");
+								System.out.println("Invalid operation. Exiting...");
 							}
+							
 							si.getServerConnection().logout();
 						}
 					}
