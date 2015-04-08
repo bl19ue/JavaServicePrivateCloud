@@ -36,25 +36,33 @@ public class VMFunctions {
 		 * not System.out.println("yes Template found.");
 		 */
 
-		VirtualMachineCloneSpec cloneSpec = new VirtualMachineCloneSpec(); // create an instance of vm clone specifications
-																			
+		VirtualMachineCloneSpec cloneSpec = new VirtualMachineCloneSpec(); // create
+																			// an
+																			// instance
+																			// of
+																			// vm
+																			// clone
+																			// specifications
+
 		cloneSpec.setLocation(new VirtualMachineRelocateSpec()); // set location
-														
+
 		cloneSpec.setPowerOn(true);
 		cloneSpec.setTemplate(false);
 
 		String name = vm.getName();
-		Task task = vm.cloneVM_Task((Folder) vm.getParent(), newVmname,cloneSpec);
+		Task task = vm.cloneVM_Task((Folder) vm.getParent(), newVmname,
+				cloneSpec);
 		String name1 = vm.getName();
-		System.out.println("Launching the VM creation task. "+ "Please wait ...");
+		System.out.println("Launching the VM creation task. "
+				+ "Please wait ...");
 
 		String status = task.waitForTask();
 
 		// task status
 		if (status == Task.SUCCESS) {
-			
+
 			System.out.println("VM got created successfully from template.");
-			
+
 		} else {
 
 			System.out.println("Failure -: VM cannot be created");
@@ -79,7 +87,7 @@ public class VMFunctions {
 	// perform all Vm operations
 	public boolean VMoperations(String vmname, String op) throws Exception {
 
-			ServiceInstance si = new ServiceInstance(new URL(
+		ServiceInstance si = new ServiceInstance(new URL(
 				"https://130.65.132.101/sdk"), "administrator", "12!@qwQW",
 				true);
 
@@ -91,23 +99,25 @@ public class VMFunctions {
 
 		for (int i = 0; i < mes.length; i++) {
 
-			System.out.println(mes[i].getName()); //T01-DC
+			System.out.println(mes[i].getName()); // T01-DC
 
 			if (mes[i] instanceof Datacenter) {
 				Datacenter dc = (Datacenter) mes[i];
 
-				Folder vmFolder = dc.getVmFolder(); //vm folder
+				Folder vmFolder = dc.getVmFolder(); // vm folder
 
-				System.out.println(vmFolder.getName()); //vm
+				System.out.println(vmFolder.getName()); // vm
 
-		//		ManagedEntity vm_mainfolder = vmFolder.getChildEntity()[0]; // Discovered
-																			// virtual
-																			// machine
+				// ManagedEntity vm_mainfolder = vmFolder.getChildEntity()[0];
+				// // Discovered
+				// virtual
+				// machine
 
-				ManagedEntity[] vms = new InventoryNavigator(vmFolder).searchManagedEntities("VirtualMachine"); // find all vm
-																	// in the
-																	// discoverd
-																	// folder
+				ManagedEntity[] vms = new InventoryNavigator(vmFolder)
+						.searchManagedEntities("VirtualMachine"); // find all vm
+				// in the
+				// discoverd
+				// folder
 
 				for (int j = 0; j < vms.length; j++) {
 					System.out.println(vms[j].getName());
@@ -216,7 +226,7 @@ public class VMFunctions {
 		return "VM state not found";
 	}
 
-	public VMStats VMStatistics(String vmname) throws Exception{
+	public VMStats VMStatistics(String vmname) throws Exception {
 		ServiceInstance si = new ServiceInstance(new URL(
 				"https://130.65.132.101/sdk"), "administrator", "12!@qwQW",
 				true);
@@ -234,7 +244,7 @@ public class VMFunctions {
 
 				ManagedEntity[] vms = new InventoryNavigator(vmFolder)
 						.searchManagedEntities("VirtualMachine"); // find all vm
-																	
+
 				for (int j = 0; j < vms.length; j++) {
 					System.out.println(vms[j].getName());
 					if (vms[j] instanceof VirtualMachine) {
@@ -246,22 +256,27 @@ public class VMFunctions {
 								.getRuntime();
 						if (vmname.equals(vm.getName())) {
 							VMStats vmStats = new VMStats();
-							 vmStats.setName(vm.getName());
-							 vmStats.setGuestFullName(vm.getSummary().getConfig().guestFullName);
-							 vmStats.setVersion(vm.getConfig().version);
-							 vmStats.setNumCPU(vm.getConfig().getHardware().numCPU);
-							 vmStats.setNumCPU(vm.getConfig().getHardware().memoryMB);
-							 vmStats.setIPAdress(vm.getGuest().getIpAddress());
-							 vmStats.setGuestState(vm.getGuest().guestState);
-							 if(!vm.getGuest().guestState.equals("notRunning")){
-								 VirtualMachineQuickStats qs = vm.getSummary().getQuickStats();
-								 vmStats.setOverallCPUusage(qs.getOverallCpuUsage());
-								 vmStats.setGuestmemoryUsage(qs.getGuestMemoryUsage());
-								 vmStats.setOnsumedOverheadMemory(qs.getConsumedOverheadMemory());
-							//	 vmStats.setFtLatencyStatus(qs.getFtLatencyStatus());
-							//	 vmStats.setHeartBeatStatus(qs.getGuestHeartbeatStatus());
-								 return vmStats;
-							 }
+							vmStats.setName(vm.getName());
+							vmStats.setGuestFullName(vm.getSummary()
+									.getConfig().guestFullName);
+							vmStats.setVersion(vm.getConfig().version);
+							vmStats.setNumCPU(vm.getConfig().getHardware().numCPU);
+							vmStats.setNumCPU(vm.getConfig().getHardware().memoryMB);
+							vmStats.setIPAdress(vm.getGuest().getIpAddress());
+							vmStats.setGuestState(vm.getGuest().guestState);
+							if (!vm.getGuest().guestState.equals("notRunning")) {
+								VirtualMachineQuickStats qs = vm.getSummary()
+										.getQuickStats();
+								vmStats.setOverallCPUusage(qs
+										.getOverallCpuUsage());
+								vmStats.setGuestmemoryUsage(qs
+										.getGuestMemoryUsage());
+								vmStats.setOnsumedOverheadMemory(qs
+										.getConsumedOverheadMemory());
+								// vmStats.setFtLatencyStatus(qs.getFtLatencyStatus());
+								// vmStats.setHeartBeatStatus(qs.getGuestHeartbeatStatus());
+								return vmStats;
+							}
 						}
 					}
 				}
@@ -269,6 +284,7 @@ public class VMFunctions {
 		}
 		return null;
 	}
+
 	public boolean getVMList() {
 		return false;
 	}

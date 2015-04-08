@@ -1,5 +1,8 @@
 package com.privatecloud.team01.models;
 
+import java.util.ArrayList;
+
+
 
 public class VM {
 	private String vmName;
@@ -19,8 +22,7 @@ public class VM {
 	public void setVmName(String vmName) {
 		this.vmName = vmName;
 	}
-	
-	
+
 	
 	//private String diskMode;
 	//private String guestOSId;

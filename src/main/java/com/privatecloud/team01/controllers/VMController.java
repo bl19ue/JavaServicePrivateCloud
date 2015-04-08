@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.*;
 
 import com.privatecloud.team01.models.VM;
+import com.privatecloud.team01.models.VMList;
 import com.privatecloud.team01.models.VMStats;
 
 import java.util.*;
@@ -32,10 +33,10 @@ public class VMController {
 			@RequestBody VM vm) throws Exception {
 		System.out.println("Creating VM");
 		System.out.println(vm);
-		Thread t1= new Thread(){
-		public void run(){
-			//creation();
-		}
+		Thread t1 = new Thread() {
+			public void run() {
+				// creation();
+			}
 		};
 		return vmfunctions.createVM(vm.getVmName(), template_id);
 	}
@@ -84,17 +85,35 @@ public class VMController {
 			throws Exception {
 		return vmfunctions.VMStatus(vmname);
 	}
-	
-	//get the statistics
+
+	// get the statistics
 	@RequestMapping(value = "/vm/{vmname}/statistics", method = RequestMethod.GET)
 	public VMStats vmStatistics(@PathVariable("vmname") String vmname)
 			throws Exception {
-		VMStats vmstats=vmfunctions.VMStatistics(vmname);
-		if(vmstats!=null)
+		VMStats vmstats = vmfunctions.VMStatistics(vmname);
+		if (vmstats != null)
 			return vmstats;
 		return null;
 	}
 
+	@RequestMapping(value = "/vm/statistics", method = RequestMethod.POST)
+	public JSONObject vmListStatistics(@RequestBody VMList vmList) throws Exception {
+		int len = vmList.getVmName().size();
+		if (len>0){
+			ArrayList<Integer> cpuArr = new ArrayList<Integer>();
+			ArrayList<Integer> ramArr = new ArrayList<Integer>();
+			JSONObject jsonObject = new JSONObject();
+			for(String vmName : vmList.getVmName()){
+				cpuArr.add(vmfunctions.VMStatistics(vmName).getOverallCPUusage());
+				ramArr.add(vmfunctions.VMStatistics(vmName).getOnsumedOverheadMemory());
+//				jsonObject.put("cpu", vmfunctions.VMStatistics(vmName).)
+			}
+			jsonObject.put("cpu", cpuArr);
+			jsonObject.put("ram", ramArr);			
+			return jsonObject;
+		}
+		return null;
+	}
 	/*
 	 * 
 	 * 
