@@ -3,17 +3,36 @@ package com.privatecloud.team01.models;
 
 public class VM {
 	private String vmName;
-	private String diskMode;
-	private String guestOSId;
 	
-	private long memoryMB;
-	private long diskSizeKB;
+	public VM(){
+		//constructor for request mapping
+	}
+	public VM(String vmName) {
+		super();
+		this.vmName=vmName;	
+	}
+
+	public String getVmName() {
+		return vmName;
+	}
+
+	public void setVmName(String vmName) {
+		this.vmName = vmName;
+	}
 	
-	private int cpuCount;
+	
+	
+	//private String diskMode;
+	//private String guestOSId;
+	
+	//private long memoryMB;
+	//private long diskSizeKB;
+	
+	//private int cpuCount;
 	
 	//Identify VM by instanceUuid
 	
-	public VM(String vmName, String diskMode, String guestOSId, long memoryMB,
+/*	public VM(String vmName, String diskMode, String guestOSId, long memoryMB,
 			long diskSizeKB, int cpuCount) {
 		super();
 		this.vmName = vmName;
@@ -73,6 +92,6 @@ public class VM {
 	}
 
 	
-	
+	*/
 	
 }
