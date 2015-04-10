@@ -27,7 +27,7 @@ public class VMController {
 	}
 
 	// create the Virtual machine and return the unique instance id
-	@RequestMapping(value = "/vm/{template_id}", method = RequestMethod.POST)
+	@RequestMapping(value = "/vm/{template_id}/create", method = RequestMethod.POST)
 	@ResponseBody
 	public String createVM(@PathVariable("template_id") String template_id,
 			@RequestBody VM vm) throws Exception {
