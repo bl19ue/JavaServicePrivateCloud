@@ -29,7 +29,7 @@ public class VMController {
 	// create the Virtual machine and return the unique instance id
 	@RequestMapping(value = "/vm/{template_id}/create", method = RequestMethod.POST)
 	@ResponseBody
-	public String createVM(@PathVariable("template_id") String template_id,
+	public JSONObject createVM(@PathVariable("template_id") String template_id,
 			@RequestBody VM vm) throws Exception {
 		System.out.println("Creating VM");
 		System.out.println(vm);
@@ -48,7 +48,7 @@ public class VMController {
 			throws Exception {
 		boolean vm_status = vmfunctions.VMoperations(vmname, "poweroff");
 		if (vm_status == true)
-			return "You have stopped the VM " + vmname;
+			return vmname;
 		else
 			return "VM cannot be stopped " + vmname;
 
@@ -88,32 +88,32 @@ public class VMController {
 
 	// get the statistics
 	@RequestMapping(value = "/vm/{vmname}/statistics", method = RequestMethod.GET)
-	public VMStats vmStatistics(@PathVariable("vmname") String vmname)
+	public ArrayList<ArrayList<String>> vmStatistics(@PathVariable("vmname") String vmname)
 			throws Exception {
-		VMStats vmstats = vmfunctions.VMStatistics(vmname);
+		ArrayList<ArrayList<String>> vmstats = vmfunctions.getStatistics(vmname);
 		if (vmstats != null)
 			return vmstats;
 		return null;
 	}
 
-	@RequestMapping(value = "/vm/statistics", method = RequestMethod.POST)
-	public JSONObject vmListStatistics(@RequestBody VMList vmList) throws Exception {
-		int len = vmList.getVmName().size();
-		if (len>0){
-			ArrayList<Integer> cpuArr = new ArrayList<Integer>();
-			ArrayList<Integer> ramArr = new ArrayList<Integer>();
-			JSONObject jsonObject = new JSONObject();
-			for(String vmName : vmList.getVmName()){
-				cpuArr.add(vmfunctions.VMStatistics(vmName).getOverallCPUusage());
-				ramArr.add(vmfunctions.VMStatistics(vmName).getOnsumedOverheadMemory());
-//				jsonObject.put("cpu", vmfunctions.VMStatistics(vmName).)
-			}
-			jsonObject.put("cpu", cpuArr);
-			jsonObject.put("ram", ramArr);			
-			return jsonObject;
-		}
-		return null;
-	}
+//	@RequestMapping(value = "/vm/statistics", method = RequestMethod.POST)
+//	public JSONObject vmListStatistics(@RequestBody VMList vmList) throws Exception {
+//		int len = vmList.getVmName().size();
+//		if (len>0){
+//			ArrayList<Integer> cpuArr = new ArrayList<Integer>();
+//			ArrayList<Integer> ramArr = new ArrayList<Integer>();
+//			JSONObject jsonObject = new JSONObject();
+//			for(String vmName : vmList.getVmName()){
+//				cpuArr.add(vmfunctions.VMStatistics(vmName).getOverallCPUusage());
+//				ramArr.add(vmfunctions.VMStatistics(vmName).getOnsumedOverheadMemory());
+////				jsonObject.put("cpu", vmfunctions.VMStatistics(vmName).)
+//			}
+//			jsonObject.put("cpu", cpuArr);
+//			jsonObject.put("ram", ramArr);			
+//			return jsonObject;
+//		}
+//		return null;
+//	}
 	/*
 	 * 
 	 * 

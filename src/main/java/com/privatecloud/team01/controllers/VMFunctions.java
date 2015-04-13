@@ -2,6 +2,14 @@ package com.privatecloud.team01.controllers;
 
 import java.net.URL;
 import java.rmi.RemoteException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.json.simple.*;
 
 import com.privatecloud.team01.models.VMStats;
 import com.vmware.vim25.mo.ServiceInstance;
@@ -11,7 +19,7 @@ import com.vmware.vim25.mo.*;
 
 public class VMFunctions {
 
-	public String createVM(String newVmname, String template_id)
+	public JSONObject createVM(String newVmname, String template_id)
 			throws Exception {
 		// create instance of ServiceInstance
 		ServiceInstance si = new ServiceInstance(new URL(
@@ -27,8 +35,8 @@ public class VMFunctions {
 		if (vm == null) {
 
 			System.out.println("No VM " + newVmname + " found");
-			si.getServerConnection().logout();
-			return "";
+			
+			return null;
 		}
 
 		/*
@@ -57,18 +65,43 @@ public class VMFunctions {
 				+ "Please wait ...");
 
 		String status = task.waitForTask();
-
+		JSONObject jsonObject = new JSONObject();
+		
 		// task status
 		if (status == Task.SUCCESS) {
-
+			
 			System.out.println("VM got created successfully from template.");
-
-		} else {
+			VirtualMachine thisNewVM = (VirtualMachine)new InventoryNavigator(rootFolder).searchManagedEntity("VirtualMachine", newVmname);
+			
+			//Turn on this VM
+			Task ontask = thisNewVM.powerOnVM_Task(null);
+			if (task.waitForTask() == Task.SUCCESS) {
+				System.out.println(newVmname + " powered on");
+				
+			}
+			jsonObject.put("name", newVmname);
+			jsonObject.put("type", template_id);
+			jsonObject.put("cpu", thisNewVM.getConfig().getHardware().getNumCPU());
+			jsonObject.put("ram", thisNewVM.getConfig().getHardware().getMemoryMB());
+			jsonObject.put("status", thisNewVM.getRuntime().getPowerState());
+			jsonObject.put("created_at", new Date());
+			
+		} 
+		else {
 
 			System.out.println("Failure -: VM cannot be created");
-			return "";
+			return null;
 		}
-		return newVmname; // return the uuid of the vm created
+
+//		name: String,
+//		type: String,
+//		cpu: {type: Number},
+//		ram: {type: Number},
+//		status: String,
+//		created_at: String
+		
+		return jsonObject;
+		// return the uuid of the vm created
 		/*
 		 * else
 		 * 
@@ -135,20 +168,20 @@ public class VMFunctions {
 								task.waitForTask();
 								System.out.println("vm:" + vm.getName()
 										+ " powered off.");
-								si.getServerConnection().logout();
+								
 								return true;
 							} else if ("poweron".equalsIgnoreCase(op)) {
 								Task task = vm.powerOnVM_Task(null);
 								if (task.waitForTask() == Task.SUCCESS) {
 									System.out.println(vmname + " powered on");
-									si.getServerConnection().logout();
+									
 									return true;
 								}
 							} else if ("reboot".equalsIgnoreCase(op)) {
 								vm.rebootGuest();
 								System.out.println(vmname
 										+ " guest OS rebooted");
-								si.getServerConnection().logout();
+								
 								return true;
 							} else if ("reset".equalsIgnoreCase(op)) {
 								Task task = vm.resetVM_Task();
@@ -179,11 +212,11 @@ public class VMFunctions {
 				}
 			}
 		}
-		si.getServerConnection().logout();
+		
 		return false;
 	}
 
-	public String VMStatus(String uuid) throws Exception {
+	public String VMStatus(String vmname) throws Exception {
 		ServiceInstance si = new ServiceInstance(new URL(
 				"https://130.65.132.101/sdk"), "administrator", "12!@qwQW",
 				true);
@@ -198,11 +231,11 @@ public class VMFunctions {
 				Datacenter dc = (Datacenter) mes[i];
 				Folder vmFolder = dc.getVmFolder(); // vm folder
 				System.out.println(vmFolder.getName()); // vm
-				ManagedEntity vm_mainfolder = vmFolder.getChildEntity()[0]; // Discovered
+				//ManagedEntity vm_mainfolder = vmFolder.getChildEntity()[0]; // Discovered
 																			// virtual
 																			// machine
 
-				ManagedEntity[] vms = new InventoryNavigator(vm_mainfolder)
+				ManagedEntity[] vms = new InventoryNavigator(vmFolder)
 						.searchManagedEntities("VirtualMachine"); // find all vm
 																	// in the
 																	// discoverd
@@ -216,7 +249,7 @@ public class VMFunctions {
 
 						VirtualMachineRuntimeInfo vmri = (VirtualMachineRuntimeInfo) vm
 								.getRuntime();
-						if (uuid.equals(instanceUuid)) {
+						if (vmname.equals(vm.getName())) {
 							return vmri.getPowerState().name();
 						}
 					}
@@ -226,65 +259,192 @@ public class VMFunctions {
 		return "VM state not found";
 	}
 
-	public VMStats VMStatistics(String vmname) throws Exception {
-		ServiceInstance si = new ServiceInstance(new URL(
-				"https://130.65.132.101/sdk"), "administrator", "12!@qwQW",
-				true);
 
-		Folder rootFolder = si.getRootFolder();
-		System.out.println(rootFolder.getName()); // Datacenters
-		ManagedEntity[] mes = rootFolder.getChildEntity();
+	static ArrayList<String> cpuStatInfoArrayList = new ArrayList<String>();
+	static ArrayList<String> memoryStatInfoArrayList = new ArrayList<String>();
+	static ArrayList<String> timeInfoArrayList = new ArrayList<String>();
+	ArrayList<ArrayList<String>> statInfo = new ArrayList<ArrayList<String>>();
+	static SimpleDateFormat sdf = new SimpleDateFormat("dd,HH,mm");
+	
+	public ArrayList<ArrayList<String>> getStatistics(String vmName) throws Exception {
+		String vCenterUrl = "https://130.65.132.116/sdk";
+		String userName = "administrator";
+		String password = "12!@qwQW";
 
-		for (int i = 0; i < mes.length; i++) {
-			System.out.println(mes[i].getName()); // T01-DC
-			if (mes[i] instanceof Datacenter) {
-				Datacenter dc = (Datacenter) mes[i];
-				Folder vmFolder = dc.getVmFolder(); // vm folder
-				System.out.println(vmFolder.getName()); // vm
+		ServiceInstance si = new ServiceInstance(new URL(vCenterUrl), userName,	password, true);
+		String vmname = "T16-VM01-Lin";		
+		//String vmname = "T01-VM03";
+		String vHostName = "130.65.133.41";
+		//String vHostName = "130.65.132.132";
+		ManagedEntity vHost = new InventoryNavigator(si.getRootFolder())
+				.searchManagedEntity("HostSystem", vHostName);
 
-				ManagedEntity[] vms = new InventoryNavigator(vmFolder)
-						.searchManagedEntities("VirtualMachine"); // find all vm
+		ManagedEntity vm1 = new InventoryNavigator(vHost).searchManagedEntity("VirtualMachine", vmname);
+		
+		VirtualMachine vm = (VirtualMachine)vm1;
+		
+		if (vm == null) {
+			return null;
+		}
+		System.out.println("VM: " + vm.getName());
+		System.out.println("get_value: " + vm.getSummary().getVm().get_value());
+		PerformanceManager perfMgr = si.getPerformanceManager();
 
-				for (int j = 0; j < vms.length; j++) {
-					System.out.println(vms[j].getName());
-					if (vms[j] instanceof VirtualMachine) {
-						VirtualMachine vm = (VirtualMachine) vms[j];
-						String instanceUuid = vm.getConfig().instanceUuid;
-						System.out.println((vm.getName()) + "," + instanceUuid);
+		/*
+		 * for(PerfCounterInfo pci:perfMgr.getPerfCounter()){
+		 * System.out.println(pci); }
+		 */
+		// int perfInterval = 1800; // 30 minutes for PastWeek
+		int perfInterval = 300;
 
-						VirtualMachineRuntimeInfo vmri = (VirtualMachineRuntimeInfo) vm
-								.getRuntime();
-						if (vmname.equals(vm.getName())) {
-							VMStats vmStats = new VMStats();
-							vmStats.setName(vm.getName());
-							vmStats.setGuestFullName(vm.getSummary()
-									.getConfig().guestFullName);
-							vmStats.setVersion(vm.getConfig().version);
-							vmStats.setNumCPU(vm.getConfig().getHardware().numCPU);
-							vmStats.setNumCPU(vm.getConfig().getHardware().memoryMB);
-							vmStats.setIPAdress(vm.getGuest().getIpAddress());
-							vmStats.setGuestState(vm.getGuest().guestState);
-							if (!vm.getGuest().guestState.equals("notRunning")) {
-								VirtualMachineQuickStats qs = vm.getSummary()
-										.getQuickStats();
-								vmStats.setOverallCPUusage(qs
-										.getOverallCpuUsage());
-								vmStats.setGuestmemoryUsage(qs
-										.getGuestMemoryUsage());
-								vmStats.setOnsumedOverheadMemory(qs
-										.getConsumedOverheadMemory());
-								// vmStats.setFtLatencyStatus(qs.getFtLatencyStatus());
-								// vmStats.setHeartBeatStatus(qs.getGuestHeartbeatStatus());
-								return vmStats;
-							}
-						}
-					}
+		// retrieve all the available perf metrics for vm
+		// PerfMetricId[] pmis = perfMgr.queryAvailablePerfMetric(vm, null,
+		// null, perfInterval);
+		PerfMetricId[] pmis = perfMgr.queryAvailablePerfMetric(vm, null, null,
+				perfInterval);
+		PerfCounterInfo[] o = perfMgr.getPerfCounter();
+		Map<String, Integer> perfCounterInfoMap = new HashMap<String, Integer>();
+		for (int k = 0; k < o.length; k++) {
+			perfCounterInfoMap.put(o[k].getNameInfo().key, o[k].getKey());
+			// System.out.println(o[k].getNameInfo().key + "," +
+			// o[k].getNameInfo().summary + "," + o[k].getKey() );
+			// usage,CPU usage as a percentage during the interval,2
+			// usage,Memory usage as percentage of total configured or available
+			// memory,24
+		}
+		// -->>>>>>>>>
+		for (PerfMetricId id : pmis) {
+			id.setInstance("");
+		}
+		// -->>>>>>>>>
+
+		Calendar curTime = si.currentTime();
+
+		PerfQuerySpec qSpec = new PerfQuerySpec();
+		qSpec.setEntity(vm.getRuntime().getHost());
+		// metricIDs must be provided, or InvalidArgumentFault
+		qSpec.setMetricId(pmis);
+		qSpec.setFormat("normal"); // optional since it's default
+		qSpec.setIntervalId(perfInterval);
+
+		Calendar startTime = (Calendar) curTime.clone();
+		startTime.roll(Calendar.DATE, -1);
+		System.out.println("start:" + startTime.getTime());
+		qSpec.setStartTime(startTime);
+
+		Calendar endTime = (Calendar) curTime.clone();
+		endTime.roll(Calendar.DATE, 0);
+		System.out.println("end:" + endTime.getTime());
+		qSpec.setEndTime(endTime);
+
+		PerfCompositeMetric pv = perfMgr.queryPerfComposite(qSpec);
+		if (pv != null) {
+			// printPerfMetric(pv.getEntity());
+			PerfEntityMetricBase[] pembs = pv.getChildEntity();
+			System.out.println("pembs length: " + pembs.length);
+			for (int i = 0; pembs != null && i < pembs.length; i++) {
+				if (vm.getSummary().getVm().get_value()
+						.equals(pembs[i].getEntity().get_value())) {
+					printPerfMetric(pembs[i]);
 				}
 			}
 		}
-		return null;
+		
+		return statInfo;
 	}
 
+	void printPerfMetric(PerfEntityMetricBase val) {
+		String entityDesc = val.getEntity().getType() + ":"
+				+ val.getEntity().get_value();
+		System.out.println("Entity:" + entityDesc);
+		System.out.println();
+
+		if (val instanceof PerfEntityMetric) {
+			// ManagedObjectReference source = val.getEntity();
+			// System.out.println("MOR: >>>>>>>>>>>>>>>>>>>>>>"+source.get_value());
+			printPerfMetric((PerfEntityMetric) val);
+		} else if (val instanceof PerfEntityMetricCSV) {
+			printPerfMetricCSV((PerfEntityMetricCSV) val);
+		} else {
+			System.out.println("UnExpected sub-type of "
+					+ "PerfEntityMetricBase.");
+		}
+	}
+
+	void printPerfMetric(PerfEntityMetric pem) {
+		System.out.println("PerfEntityMetric for: "
+				+ pem.getEntity().get_value());
+		PerfMetricSeries[] vals = pem.getValue();
+		PerfSampleInfo[] infos = pem.getSampleInfo();
+
+		long[] statValue;
+		for (int i = 0; vals != null && i < vals.length; i++) {
+			if (vals[i].getId().getCounterId() == 6) {
+				System.out.println("CPU statistics >>>>>>>>>>>>>>>>>>>");
+				if (vals[i] instanceof PerfMetricIntSeries) {
+					PerfMetricIntSeries val = (PerfMetricIntSeries) vals[i];
+					statValue = val.getValue();
+					for (int k = 0; k < statValue.length - 1; k++) {
+						// cpuStatInfoArrayList.add("[new Date("+sdf.format(infos[k].getTimestamp().getTime()).toString()+") , "+statValue[k]+"],");
+						System.out.println(sdf.format(infos[k].getTimestamp().getTime())
+										.toString() + ") , " + statValue[k]
+								+ "],");
+						cpuStatInfoArrayList.add(String.valueOf(statValue[k]));
+						timeInfoArrayList.add(sdf.format(infos[k].getTimestamp().getTime()));
+					}
+					// cpuStatInfoArrayList.add("[new Date("+sdf.format(infos[statValue.length-1].getTimestamp().getTime()).toString()+") , "+statValue[statValue.length-1]+"]");
+					System.out.println(sdf.format(
+									infos[statValue.length - 1].getTimestamp().getTime()).toString() + ") , "
+							+ statValue[statValue.length - 1] + "]");
+				}
+			}
+			if (vals[i].getId().getCounterId() == 24) {
+				System.out.println("Memory statistics >>>>>>>>>>>>>>>>>>>");
+				if (vals[i] instanceof PerfMetricIntSeries) {
+					PerfMetricIntSeries val = (PerfMetricIntSeries) vals[i];
+					statValue = val.getValue();
+					for (int k = 0; k < statValue.length - 1; k++) {
+						// memoryStatInfoArrayList.add("[new Date("+sdf.format(infos[k].getTimestamp().getTime()).toString()+"), "+statValue[k]+"],");
+						System.out.println("[new Date("
+								+ sdf.format(infos[k].getTimestamp().getTime())
+										.toString() + ") , " + statValue[k]
+								+ "],");
+						memoryStatInfoArrayList.add(String.valueOf(statValue[k]));
+					}
+					// memoryStatInfoArrayList.add("[new Date("+sdf.format(infos[statValue.length-1].getTimestamp().getTime()).toString()+"), "+statValue[statValue.length-1]+"]");
+					System.out.println("[new Date("
+							+ sdf.format(
+									infos[statValue.length - 1].getTimestamp()
+											.getTime()).toString() + ") , "
+							+ statValue[statValue.length - 1] + "]");
+				}
+			}
+		}
+		/*
+		 * System.out.println("CPU Statistics: "); for(Map.Entry<String, Long>
+		 * entry: CPUStatInfoMap.entrySet()){
+		 * System.out.println(entry.getKey()+" "+entry.getValue()); }
+		 * System.out.println("Memory Statistics"); for(Map.Entry<String, Long>
+		 * entry: memoryStatInfoMap.entrySet()){
+		 * System.out.println(entry.getKey()+" "+entry.getValue()); }
+		 */
+		statInfo.add(timeInfoArrayList);
+		statInfo.add(cpuStatInfoArrayList);
+		statInfo.add(memoryStatInfoArrayList);
+		// Object[] statInfoAll = (Object[]) new Object();
+		// statInfoAll.
+	}
+
+	static void printPerfMetricCSV(PerfEntityMetricCSV pems) {
+		System.out.println("SampleInfoCSV:" + pems.getSampleInfoCSV());
+		PerfMetricSeriesCSV[] csvs = pems.getValue();
+		for (int i = 0; i < csvs.length; i++) {
+			System.out.println("PerfCounterId:"
+					+ csvs[i].getId().getCounterId());
+			System.out.println("CSV sample values:" + csvs[i].getValue());
+		}
+	}
+	
 	public boolean getVMList() {
 		return false;
 	}
