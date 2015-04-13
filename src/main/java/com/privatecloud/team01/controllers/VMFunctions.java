@@ -260,26 +260,25 @@ public class VMFunctions {
 	}
 
 
-	static ArrayList<String> cpuStatInfoArrayList = new ArrayList<String>();
-	static ArrayList<String> memoryStatInfoArrayList = new ArrayList<String>();
+	static ArrayList<Long> cpuStatInfoArrayList = new ArrayList<Long>();
+	static ArrayList<Long> memoryStatInfoArrayList = new ArrayList<Long>();
 	static ArrayList<String> timeInfoArrayList = new ArrayList<String>();
-	ArrayList<ArrayList<String>> statInfo = new ArrayList<ArrayList<String>>();
+	ArrayList<ArrayList> statInfo = new ArrayList<ArrayList>();
 	static SimpleDateFormat sdf = new SimpleDateFormat("dd,HH,mm");
 	
-	public ArrayList<ArrayList<String>> getStatistics(String vmName) throws Exception {
-		String vCenterUrl = "https://130.65.132.116/sdk";
+	public ArrayList<ArrayList> getStatistics(String vmname) throws Exception {
+		String vCenterUrl = "https://130.65.132.101/sdk";
 		String userName = "administrator";
 		String password = "12!@qwQW";
 
-		ServiceInstance si = new ServiceInstance(new URL(vCenterUrl), userName,	password, true);
-		String vmname = "T16-VM01-Lin";		
+		ServiceInstance si = new ServiceInstance(new URL(vCenterUrl), userName,	password, true);		
 		//String vmname = "T01-VM03";
-		String vHostName = "130.65.133.41";
-		//String vHostName = "130.65.132.132";
-		ManagedEntity vHost = new InventoryNavigator(si.getRootFolder())
-				.searchManagedEntity("HostSystem", vHostName);
+//		String vHostName = "130.65.133.132";
+//		//String vHostName = "130.65.132.132";
+//		ManagedEntity vHost = new InventoryNavigator(si.getRootFolder())
+//				.searchManagedEntity("HostSystem", vHostName);
 
-		ManagedEntity vm1 = new InventoryNavigator(vHost).searchManagedEntity("VirtualMachine", vmname);
+		ManagedEntity vm1 = new InventoryNavigator(si.getRootFolder()).searchManagedEntity("VirtualMachine", vmname);
 		
 		VirtualMachine vm = (VirtualMachine)vm1;
 		
@@ -376,9 +375,9 @@ public class VMFunctions {
 				+ pem.getEntity().get_value());
 		PerfMetricSeries[] vals = pem.getValue();
 		PerfSampleInfo[] infos = pem.getSampleInfo();
-
+		boolean stop = false;
 		long[] statValue;
-		for (int i = 0; vals != null && i < vals.length; i++) {
+		for (int i = 0; vals != null && i < vals.length && (cpuStatInfoArrayList.isEmpty() || memoryStatInfoArrayList.isEmpty()); i++) {
 			if (vals[i].getId().getCounterId() == 6) {
 				System.out.println("CPU statistics >>>>>>>>>>>>>>>>>>>");
 				if (vals[i] instanceof PerfMetricIntSeries) {
@@ -389,7 +388,7 @@ public class VMFunctions {
 						System.out.println(sdf.format(infos[k].getTimestamp().getTime())
 										.toString() + ") , " + statValue[k]
 								+ "],");
-						cpuStatInfoArrayList.add(String.valueOf(statValue[k]));
+						cpuStatInfoArrayList.add(statValue[k]);
 						timeInfoArrayList.add(sdf.format(infos[k].getTimestamp().getTime()));
 					}
 					// cpuStatInfoArrayList.add("[new Date("+sdf.format(infos[statValue.length-1].getTimestamp().getTime()).toString()+") , "+statValue[statValue.length-1]+"]");
@@ -409,7 +408,7 @@ public class VMFunctions {
 								+ sdf.format(infos[k].getTimestamp().getTime())
 										.toString() + ") , " + statValue[k]
 								+ "],");
-						memoryStatInfoArrayList.add(String.valueOf(statValue[k]));
+						memoryStatInfoArrayList.add(statValue[k]);
 					}
 					// memoryStatInfoArrayList.add("[new Date("+sdf.format(infos[statValue.length-1].getTimestamp().getTime()).toString()+"), "+statValue[statValue.length-1]+"]");
 					System.out.println("[new Date("
@@ -418,6 +417,7 @@ public class VMFunctions {
 											.getTime()).toString() + ") , "
 							+ statValue[statValue.length - 1] + "]");
 				}
+				stop = true;
 			}
 		}
 		/*

@@ -88,9 +88,9 @@ public class VMController {
 
 	// get the statistics
 	@RequestMapping(value = "/vm/{vmname}/statistics", method = RequestMethod.GET)
-	public ArrayList<ArrayList<String>> vmStatistics(@PathVariable("vmname") String vmname)
+	public ArrayList<ArrayList> vmStatistics(@PathVariable("vmname") String vmname)
 			throws Exception {
-		ArrayList<ArrayList<String>> vmstats = vmfunctions.getStatistics(vmname);
+		ArrayList<ArrayList> vmstats = vmfunctions.getStatistics(vmname);
 		if (vmstats != null)
 			return vmstats;
 		return null;
